@@ -1,0 +1,36 @@
+name: $(MajorVersion).$(MinorVersion).$(Rev:r)
+trigger:
+  branches:
+    include:
+    - main
+variables:
+- name: buildConfiguration
+  value: 'Release'
+- name: majorVersion
+  value: 2
+- name: minorVersion
+  value: 0
+stages:
+- stage: __default
+  jobs:
+  - job: Job
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: VersionAssemblies@2
+      inputs:
+        filePattern: '**/*.csproj'
+        versionSource: 'buildNumber'
+        versionFormat: 'threeParts'
+        replaceVersionFormat: 'threeParts'
+        failIfNoMatchFound: true
+    - task: CmdLine@2
+      displayName: 'dotnet build $(buildConfiguration)'
+      inputs:
+        script: dotnet build Demo.Versioning.sln --configuration $(buildConfiguration)
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(Build.SourcesDirectory)/Demo.Versioning/bin/Release'
+        artifact: 'NuGet'
+        publishLocation: 'pipeline'
+

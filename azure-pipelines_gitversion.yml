@@ -1,0 +1,40 @@
+trigger:
+- main
+- private/*
+- topic/*
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+- task: GitVersion@5
+  name: GitVersion
+  inputs:
+    versionSpec: '5.x'
+  
+- task: VersionAssemblies@2
+  inputs:
+    filePattern: '**/*.csproj'
+    versionSource: 'variable'
+    customNumberVariable: 'GitVersion.NuGetVersion'
+    versionFormat: 'threeParts'
+    replaceVersionFormat: 'threeParts'
+    failIfNoMatchFound: true
+
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: '##vso[build.updatebuildnumber]$(GitVersion.NuGetVersion)"'
+    pwsh: true
+  
+- script: dotnet build Demo.Versioning.sln --configuration $(buildConfiguration)
+  displayName: 'dotnet build $(buildConfiguration)'
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Build.SourcesDirectory)/Demo.Versioning/bin/Release'
+    artifact: 'NuGet'
+    publishLocation: 'pipeline'
